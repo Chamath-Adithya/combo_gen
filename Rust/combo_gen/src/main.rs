@@ -3,11 +3,11 @@
 // Or: cargo build --release
 
 use std::env;
-use std::fs::{File, OpenOptions};
-use std::io::{self, BufWriter, Write};
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use std::thread;
 use std::time::Instant;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -18,18 +18,19 @@ fn default_charset() -> Vec<u8> {
     (33u8..=126u8).collect() // printable ASCII
 }
 
-// pow with overflow detection
+// Safe power with u64 overflow detection
 fn pow_u64(base: u64, exp: usize) -> Option<u64> {
-    let mut r: u128 = 1;
+    let mut result: u128 = 1;
     for _ in 0..exp {
-        r *= base as u128;
-        if r > u64::MAX as u128 {
+        result *= base as u128;
+        if result > u64::MAX as u128 {
             return None;
         }
     }
-    Some(r as u64)
+    Some(result as u64)
 }
 
+// Convert linear index to digits in a given base
 fn index_to_digits(mut index: u64, base: u64, len: usize) -> Vec<u32> {
     let mut digits = vec![0u32; len];
     for pos in (0..len).rev() {
@@ -39,6 +40,7 @@ fn index_to_digits(mut index: u64, base: u64, len: usize) -> Vec<u32> {
     digits
 }
 
+// Odometer increment
 #[inline]
 fn odometer_increment(digits: &mut [u32], base: u32) -> bool {
     let mut pos = digits.len();
@@ -64,29 +66,29 @@ fn main() {
 
     let length: usize = args[1].parse().expect("length must be integer");
 
-    // defaults
+    // Defaults
     let mut threads = num_cpus::get();
     let mut limit: Option<u64> = None;
     let mut output_path = String::from("combos.txt");
     let mut charset = default_charset();
-    let mut batch_size: usize = 64 * 1024; // 64 KB default buffer
+    let mut batch_size: usize = 64 * 1024; // 64 KB buffer
     let mut resume_file: Option<String> = None;
     let mut compress = false;
     let mut memory_only = false;
     let mut verbose = false;
     let mut dry_run = false;
 
-    // parse flags
-    let mut i = 2usize;
+    // Parse flags
+    let mut i = 2;
     while i < args.len() {
         match args[i].as_str() {
-            "--threads" => { i+=1; threads = args[i].parse().expect("threads must be integer"); }
-            "--limit" => { i+=1; limit = Some(args[i].parse().expect("limit must be integer")); }
-            "--output" => { i+=1; output_path = args[i].clone(); }
-            "--charset" => { i+=1; charset = args[i].as_bytes().to_vec(); }
-            "--batch" => { i+=1; batch_size = args[i].parse().expect("batch must be integer"); }
-            "--resume" => { i+=1; resume_file = Some(args[i].clone()); }
-            "--compress" => { i+=1; compress = matches!(args[i].as_str(), "gzip"); }
+            "--threads" => { i += 1; threads = args[i].parse().expect("threads must be integer"); }
+            "--limit" => { i += 1; limit = Some(args[i].parse().expect("limit must be integer")); }
+            "--output" => { i += 1; output_path = args[i].clone(); }
+            "--charset" => { i += 1; charset = args[i].as_bytes().to_vec(); }
+            "--batch" => { i += 1; batch_size = args[i].parse().expect("batch must be integer"); }
+            "--resume" => { i += 1; resume_file = Some(args[i].clone()); }
+            "--compress" => { i += 1; compress = matches!(args[i].as_str(), "gzip"); }
             "--memory" => { memory_only = true; }
             "--verbose" => { verbose = true; }
             "--dry-run" => { dry_run = true; }
@@ -109,18 +111,17 @@ fn main() {
     println!("Total combinations: {}", total);
     println!("Threads: {}", threads);
     println!("Effective total: {}", effective_total);
-    println!("Output path: {}", if memory_only {"(memory-only)"} else {&output_path});
+    println!("Output path: {}", if memory_only { "(memory-only)" } else { &output_path });
     if compress { println!("Compression: gzip"); }
 
-    // resume support
+    // Resume support
     let start_index = if let Some(ref resume) = resume_file {
         if Path::new(resume).exists() {
-            let s = std::fs::read_to_string(resume).expect("Failed to read resume file");
-            s.trim().parse::<u64>().unwrap_or(0)
+            std::fs::read_to_string(resume).unwrap_or_else(|_| "0".to_string()).trim().parse().unwrap_or(0)
         } else { 0 }
     } else { 0 };
 
-    // progress bar
+    // Progress bar
     let pb = ProgressBar::new(effective_total - start_index);
     pb.set_style(
         ProgressStyle::default_bar()
@@ -132,7 +133,7 @@ fn main() {
     let produced = Arc::new(AtomicU64::new(0));
     let start_time = Instant::now();
 
-    // adjust threads for small limits
+    // Adjust threads for small limits
     let mut per_thread = (effective_total - start_index) / threads as u64;
     let mut remainder = (effective_total - start_index) % threads as u64;
     if per_thread == 0 {
@@ -141,21 +142,24 @@ fn main() {
         remainder = 0;
     }
 
-    let output_arc = if memory_only || dry_run {
+    // Setup output writer
+    let output_arc: Option<Arc<Mutex<Box<dyn Write + Send>>>> = if memory_only || dry_run {
         None
-    } else if compress {
-        let file = File::create(&output_path).expect("Failed to open file");
-        Some(Arc::new(Mutex::new(BufWriter::with_capacity(batch_size, GzEncoder::new(file, Compression::best())) as Box<dyn Write + Send>)))
     } else {
         let file = File::create(&output_path).expect("Failed to open file");
-        Some(Arc::new(Mutex::new(BufWriter::with_capacity(batch_size, file) as Box<dyn Write + Send>)))
+        let writer: Box<dyn Write + Send> = if compress {
+            Box::new(BufWriter::with_capacity(batch_size, GzEncoder::new(file, Compression::best())))
+        } else {
+            Box::new(BufWriter::with_capacity(batch_size, file))
+        };
+        Some(Arc::new(Mutex::new(writer)))
     };
 
     let mut handles = Vec::with_capacity(threads);
     let mut current_index = start_index;
 
     for _ in 0..threads {
-        let count = per_thread + if remainder > 0 { remainder -=1; 1 } else {0};
+        let count = per_thread + if remainder > 0 { remainder -= 1; 1 } else { 0 };
         if count == 0 { break; }
         let start = current_index;
         current_index += count;
