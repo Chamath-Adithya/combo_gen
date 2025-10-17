@@ -1,0 +1,49 @@
+# === Rust / Cargo build files ===
+/target/
+**/*.rs.bk
+
+# === Output binaries ===
+/combo_gen
+*.exe
+*.out
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+
+# === Logs and temporary files ===
+*.log
+*.tmp
+*.swp
+*.swo
+
+# === Generated output files ===
+/combos.txt
+/output.txt
+/results.txt
+
+# === OS / Editor specific ===
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# VS Code
+.vscode/
+.idea/
+
+# === Cargo-specific ===
+Cargo.lock
+.cargo/
+
+# === Backup / cache ===
+*.bak
+*.old
+*.cache
