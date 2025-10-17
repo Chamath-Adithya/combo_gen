@@ -1,4 +1,4 @@
-# ComboGen 🚀 - Comprehensive Guide & Cheatsheet
+# ComboGen 🚀 - Corrected Guide & Cheatsheet (Aligned with Cargo.toml)
 
 A **high-performance** Rust tool for generating combinations, optimized for speed, flexibility, and scalability.
 
@@ -25,9 +25,9 @@ RUSTFLAGS="-C target-cpu=native -C opt-level=3 -C lto=fat" cargo build --release
 
 Binaries are located in `target/release/`:
 
-* `combo_gen_fixed` ✅ Fixed (stable)
-* `combo_gen_optimized` ⚡ Optimized (balanced)
-* `combo_gen_ultra` 🚀 Ultra-Fast (max speed)
+* `n` ✅ Fixed (stable)
+* `pro` ⚡ Optimized (balanced)
+* `max` 🚀 Ultra-Fast (maximum speed)
 * `combo_gen` 🧩 Unified entry point
 
 ---
@@ -37,30 +37,30 @@ Binaries are located in `target/release/`:
 ### Basic Usage
 
 ```bash
-# Generate 100k combinations of length 8
-cargo run --release -- 8 --limit 100000
+# Generate 100k combinations of length 8 with ultra-fast
+cargo run --bin max --release -- 8 --limit 100000
 
 # Generate all combinations of length 4 using 8 threads
-cargo run --release -- 4 --threads 8
+cargo run --bin pro --release -- 4 --threads 8
 
 # Custom charset
-cargo run --release -- 5 --charset "abc123" --output custom.txt
+cargo run --bin n --release -- 5 --charset "abc123" --output custom.txt
 ```
 
 ### Advanced Usage
 
 ```bash
 # Resume interrupted generation
-cargo run --release -- 8 --resume resume.txt --limit 500000
+cargo run --bin max --release -- 8 --resume resume.txt --limit 500000
 
 # Memory-only mode (no file output)
-cargo run --release -- 4 --memory --verbose
+cargo run --bin pro --release -- 4 --memory --verbose
 
 # With gzip compression
-cargo run --release -- 8 --limit 100000 --compress gzip --output combos.gz
+cargo run --bin max --release -- 8 --limit 100000 --compress gzip --output archive.gz
 
 # Dry-run (test speed without writing)
-cargo run --release -- 6 --dry-run --verbose
+cargo run --bin pro --release -- 6 --dry-run --verbose
 ```
 
 ---
@@ -68,7 +68,7 @@ cargo run --release -- 6 --dry-run --verbose
 ## 📖 Command Line Options
 
 ```
-cargo run --release -- <length> [OPTIONS]
+cargo run --bin <version> --release -- <length> [OPTIONS]
 ```
 
 | Option             | Description               | Default         |
@@ -89,72 +89,54 @@ cargo run --release -- <length> [OPTIONS]
 
 ## 💡 Cheatsheet: Commands & Scenarios
 
-### 1️⃣ Small-Scale Generation (Educational Demo)
+### 1️⃣ Small-Scale Generation
 
 ```bash
-# Generate all 3-length combos from charset "abc"
-cargo run --bin combo_gen_fixed --release -- 3 --charset "abc"
+cargo run --bin n --release -- 3 --charset "abc"
 ```
 
 * Total combinations: 27
-* Ideal for teaching combinatorial growth
+* Useful for educational demos
 
 ### 2️⃣ Password Generation Simulation
 
 ```bash
-cargo run --release -- 8 --limit 100000 --threads 8 --output passwords.txt
+cargo run --bin max --release -- 8 --limit 100000 --threads 8 --output passwords.txt
 ```
 
-* Shows importance of long passwords
-* Benchmarks: Fixed ~42s, Optimized ~16s, Ultra ~11s
+* Benchmarks: Fixed (n) ~42s, Optimized (pro) ~16s, Ultra/Max (max) ~11s
 
 ### 3️⃣ Test Data Creation (QA)
 
 ```bash
-cargo run --release -- 5 --charset "0123456789" --limit 1000000 --dry-run
+cargo run --bin pro --release -- 5 --charset "0123456789" --limit 1000000 --dry-run
 ```
-
-* Generates numeric 5-length combos quickly
-* Useful for testing input fields, IDs, etc.
 
 ### 4️⃣ Resuming Interrupted Jobs
 
 ```bash
-# Start generation
-cargo run --release -- 6 --limit 500000 --resume resume.txt
+cargo run --bin max --release -- 6 --limit 500000 --resume resume.txt
 ```
-
-* Resume safely after crash
-* Atomic counters ensure thread safety
 
 ### 5️⃣ Memory-Only Mode
 
 ```bash
-cargo run --release -- 4 --memory --verbose
+cargo run --bin pro --release -- 4 --memory --verbose
 ```
-
-* Store combos in RAM only
-* Print first few samples
-* Useful for piping into other programs
 
 ### 6️⃣ Compressed Output
 
 ```bash
-cargo run --release -- 8 --limit 100000 --compress gzip --output archive.gz
+cargo run --bin max --release -- 8 --limit 100000 --compress gzip --output archive.gz
 ```
 
-* Saves disk space
-* Ultra mode uses fast compression
-* Speed penalty ~20-40%
+* Saves 70-90% disk space
 
-### 7️⃣ Dry-Run Benchmarking
+### 7️⃣ Dry-Run for Benchmarking
 
 ```bash
-cargo run --release -- 6 --limit 1000000 --dry-run --threads 16
+cargo run --bin max --release -- 6 --limit 1000000 --dry-run --threads 16
 ```
-
-* Tests throughput without I/O overhead
-* Helps optimize thread count and buffer size
 
 ---
 
@@ -193,14 +175,12 @@ RUSTFLAGS="-C target-cpu=native -C opt-level=3 -C lto=fat" cargo build --release
 | -------- | --------------- | ------------------- |
 | < 1M     | Seconds         | Any                 |
 | 1M-100M  | Minutes         | Optimized+          |
-| 100M-10B | Hours           | Ultra-Fast          |
-| > 10B    | Days            | Ultra-Fast + Resume |
+| 100M-10B | Hours           | Max (max)           |
+| > 10B    | Days            | Max + Resume        |
 
 ---
 
 ## 🤝 Contributing
-
-Areas for improvement:
 
 * SIMD intrinsics
 * GPU acceleration
@@ -213,15 +193,15 @@ Areas for improvement:
 ## 🚀 Quick Reference
 
 ```bash
-# Simple
-cargo run --release -- 6 --limit 100000
+# Simple generation
+cargo run --bin max --release -- 6 --limit 100000
 
 # Maximum performance
 RUSTFLAGS="-C target-cpu=native" cargo build --release
-./target/release/combo_gen 8 --threads $(nproc)
+./target/release/max 8 --threads $(nproc)
 
 # Resume large job
-cargo run --release -- 10 --resume state.txt --output big.txt
+cargo run --bin max --release -- 10 --resume state.txt --output big.txt
 
 # Benchmark system
 ./benchmark.sh
