@@ -205,7 +205,6 @@ fn main() {
         let pb_clone = pb.clone();
         let output_clone = output_arc.clone();
         let memory_clone = memory_storage.clone();
-        let resume_clone = resume_file.clone();
         let verbose_clone = verbose;
         let dry_run_clone = dry_run;
         let batch_size_clone = batch_size;
