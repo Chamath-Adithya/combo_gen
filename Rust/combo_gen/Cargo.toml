@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 num_cpus = "1.17"
 parking_lot = "0.12"
+indicatif = "0.17.8"
 
