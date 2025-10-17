@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 num_cpus = "1.16.0"
 indicatif = "0.17.8"
+flate2 = "1.0"
 
