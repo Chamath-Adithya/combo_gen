@@ -188,10 +188,6 @@ An optimized ESP32 Arduino firmware that generates all possible combinations of 
 * Rust 1.70+
 * Cargo
 
-### ESP32
-* ESP32 board
-* Arduino IDE
-
 ## License
 
 MIT License
