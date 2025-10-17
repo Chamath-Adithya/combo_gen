@@ -64,7 +64,7 @@ fn generate_combo(digits: &[u32], charset: &[u8], buffer: &mut [u8]) {
     }
 }
 
-fn main() {
+pub fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         eprintln!("Usage: {} <length> [--threads N] [--limit N] [--output path] [--charset custom] [--batch N] [--resume path] [--compress gzip|none] [--memory] [--verbose] [--dry-run]", args[0]);
