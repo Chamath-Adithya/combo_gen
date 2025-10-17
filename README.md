@@ -1,197 +1,97 @@
-# combo_gen
-
-A suite of high-performance combination generators for various platforms, designed for generating all possible combinations of a given character set and length. Ideal for testing, benchmarking, password generation simulation, and research purposes.
-
-## Overview
-
-This project provides multiple implementations across different languages and platforms:
-
-- **Rust v1 (ComboGen Optimem)**: Memory-optimized, resumable generator with multi-threading and compression support.
-- **Rust v2 (ComboGen)**: Advanced versions with different optimization levels (n, pro, max) for maximum performance.
-- **ESP32 Firmware**: Microcontroller-based generator for embedded systems with limited RAM.
-
-## Rust Implementations
-
-### v1: ComboGen Optimem
+ComboGen Optimem
 
 A high-performance, memory-optimized, resumable combination generator written in Rust.
 
-#### Features
+It can generate all possible combinations of a given length from a character set, optionally save to compressed files, resume after interruption, and use multiple threads for maximum throughput.
 
-* Multi-threaded generation for maximum speed.
-* Optimized memory usage using per-thread buffers (optimem approach).
-* Resume support: safely continue after interruption.
-* Optional compressed output (gzip).
-* Memory-only mode for small sets to avoid I/O overhead.
-* Unicode/UTF-8 charset support.
-* CLI flags for batch size, verbosity, dry-run, and more.
-* Progress bar with ETA and throughput.
+Features
 
-#### Build
+Multi-threaded generation for maximum speed.
 
-```bash
+Optimized memory usage using per-thread buffers (optimem approach).
+
+Resume support: safely continue after interruption.
+
+Optional compressed output (gzip).
+
+Memory-only mode for small sets to avoid I/O overhead.
+
+Unicode/UTF-8 charset support.
+
+CLI flags for batch size, verbosity, dry-run, and more.
+
+Progress bar with ETA and throughput.
+
+Build
+Using Cargo
 cargo build --release
-```
 
-#### Usage
+Using Rustc
+rustc -C opt-level=3 combo_gen_optimem.rs -o combo_gen_optimem
 
-```bash
+Usage
 ./combo_gen_optimem <length> [options]
-```
 
-Options:
-- `--threads N`: Number of threads (default: CPU cores)
-- `--limit N`: Limit combinations generated
-- `--output path`: Output file path (default: combos.txt)
-- `--charset <string>`: Custom character set
-- `--batch N`: Buffer size per thread in bytes (default: 64 KB)
-- `--resume path`: Resume from file
-- `--compress gzip`: Compress output
-- `--memory`: Memory-only mode
-- `--verbose`: Show thread progress
-- `--dry-run`: Benchmark without writing
-
-#### Examples
-
-```bash
-# Generate all 8-character combos
+Options
+Flag	Description
+--threads N	Number of threads to use (default: number of CPU cores).
+--limit N	Limit the number of combinations generated.
+--output path	Output file path (default: combos.txt).
+--charset <string>	Custom character set (UTF-8 allowed).
+--batch N	Buffer size per thread in bytes (default: 64 KB).
+--resume path	Path to resume file. Saves last generated index for safe resuming.
+--compress gzip	Compress output using gzip.
+--memory	Memory-only mode, skips file writing.
+--verbose	Show detailed thread progress.
+--dry-run	Generate combos without writing to disk (good for benchmarking).
+Examples
+Generate all 8-character combos with default settings
 ./combo_gen_optimem 8
 
-# Generate first 1000 combos of length 5
+Generate first 1000 combos of length 5
 ./combo_gen_optimem 5 --limit 1000
 
-# Use 8 threads and save to file
+Use 8 threads and save output to file
 ./combo_gen_optimem 6 --threads 8 --output combos.txt
 
-# Custom charset
+Use a custom charset
 ./combo_gen_optimem 4 --charset "abc123!@"
 
-# Resume generation
+Resume generation after interruption
 ./combo_gen_optimem 8 --resume resume.txt --limit 1000000
 
-# Compressed output
+Generate compressed output
 ./combo_gen_optimem 8 --compress gzip --output combos.gz
-```
 
-### v2: ComboGen
+Dry-run with verbose output
+./combo_gen_optimem 5 --dry-run --verbose
 
-A high-performance Rust tool for generating combinations, optimized for speed, flexibility, and scalability.
+Memory-only mode for small sets
+./combo_gen_optimem 3 --memory
 
-#### Features
+Quick Start / Benchmark Guide
 
-* Multiple optimization levels: n (stable), pro (optimized), max (ultra-fast)
-* Base-N conversion algorithm with odometer pattern
-* Loop unrolling for lengths 1-8
-* Batched atomic operations
-* Large buffers for cache efficiency
-* Thread-safe resume
-* Gzip compression support
-* Memory-only mode
-* Verbose and dry-run modes
+These examples are rough estimates for a modern multi-core laptop (8 threads, SSD, 16 GB RAM) using the default charset of 94 ASCII characters.
 
-#### Installation & Build
+Length	Total Combos	Approx. Time	Notes
+4	78,074	<1 sec	Small, can fit in memory easily
+5	7,737,809	~1-2 sec	Fast, multi-threaded
+6	738,000,000	~20-40 sec	SSD recommended
+7	69,343,957,000	~10-15 min	Use --resume and/or --compress gzip
+8	6,531,000,000,000	hours-days	Use --resume, --compress gzip, and large batch buffer
 
-```bash
-git clone https://github.com/chamath-adithya/combo_gen.git
-cd combo_gen/Rust/v2
+Tips:
 
-# Standard build
-cargo build --release
+Use --threads equal to your CPU cores for maximum speed.
 
-# Ultra-fast build
-RUSTFLAGS="-C target-cpu=native -C opt-level=3 -C lto=fat" cargo build --release
-```
+Use --batch to increase buffer size if generating huge outputs.
 
-Binaries: `n`, `pro`, `max`, `combo_gen`
+Use --resume to safely continue after interruptions.
 
-#### Usage
+Use --compress gzip to save disk space for large files.
 
-```bash
-cargo run --bin <version> --release -- <length> [OPTIONS]
-```
+Use --dry-run for quick throughput tests without writing to disk.
 
-Options:
-- `--threads N`: Number of threads (default: CPU cores)
-- `--limit N`: Stop after N combinations
-- `--output path`: Output file path (default: combos.txt)
-- `--charset custom`: Custom charset
-- `--batch N`: Buffer size in bytes (default: 2 MB)
-- `--resume path`: Resume from file
-- `--compress gzip`: Enable compression
-- `--memory`: Memory-only mode
-- `--verbose`: Detailed progress
-- `--dry-run`: Generate without writing
+License
 
-#### Examples
-
-```bash
-# Basic generation
-cargo run --bin max --release -- 8 --limit 100000
-
-# Custom charset
-cargo run --bin pro --release -- 5 --charset "abc123" --output custom.txt
-
-# Resume interrupted job
-cargo run --bin max --release -- 8 --resume resume.txt --limit 500000
-
-# Compressed output
-cargo run --bin max --release -- 8 --compress gzip --output archive.gz
-```
-
-## ESP32 Implementation
-
-An optimized ESP32 Arduino firmware that generates all possible combinations of a given character set for a specified code length.
-
-#### Features
-
-* Accepts code length from Serial Monitor (1–10 characters)
-* Calculates total possible combinations instantly
-* Generates combinations on-the-fly without RAM storage
-* Streams combinations to Serial Monitor
-* Safe for ESP32's limited RAM
-* Optional limit for testing large lengths
-
-#### Supported Character Set
-
-94 printable ASCII characters by default (customizable).
-
-#### Hardware Requirements
-
-* ESP32 Development Board
-* USB cable
-* Arduino IDE or PlatformIO
-
-#### Installation & Setup
-
-1. Install Arduino IDE
-2. Select ESP32 board
-3. Connect ESP32 via USB
-4. Upload the firmware from `ESP-32/combo_gen/combo_gen.ino`
-
-#### Usage
-
-1. Open Serial Monitor (115200 baud)
-2. Enter code length when prompted
-3. View combinations streaming
-
-#### Performance Considerations
-
-| Code Length | Total Combinations | Practical |
-|-------------|-------------------|-----------|
-| 1–5        | 94 – 7M          | Fast     |
-| 6–7        | 689M – 64B       | Slow     |
-| 8–10       | 6T+              | Impractical |
-
-## Requirements
-
-### Rust Versions
-* Rust 1.70+
-* Cargo
-
-### ESP32
-* ESP32 board
-* Arduino IDE
-
-## License
-
-MIT License
+MIT License © 2025 Chamath Adithya
