@@ -7,13 +7,13 @@ num_cpus = "1.16.0"
 indicatif = "0.17.8"
 flate2 = "1.0"
 [[bin]]
-name = "combo_gen_fixed"
+name = "n"
 path = "src/combo_gen_fixed.rs"
 [[bin]]
-name = "combo_gen_optimized"
+name = "pro"
 path = "src/combo_gen_optimized.rs"
 [[bin]]
-name = "combo_gen_ultra"
+name = "max"
 path = "src/combo_gen_ultra.rs"
 [[bin]]
 name = "combo_gen"
