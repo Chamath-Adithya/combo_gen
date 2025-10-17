@@ -69,15 +69,28 @@ Dry-run with verbose output
 Memory-only mode for small sets
 ./combo_gen_optimem 3 --memory
 
-Performance Tips
+Quick Start / Benchmark Guide
+
+These examples are rough estimates for a modern multi-core laptop (8 threads, SSD, 16 GB RAM) using the default charset of 94 ASCII characters.
+
+Length	Total Combos	Approx. Time	Notes
+4	78,074	<1 sec	Small, can fit in memory easily
+5	7,737,809	~1-2 sec	Fast, multi-threaded
+6	738,000,000	~20-40 sec	SSD recommended
+7	69,343,957,000	~10-15 min	Use --resume and/or --compress gzip
+8	6,531,000,000,000	hours-days	Use --resume, --compress gzip, and large batch buffer
+
+Tips:
 
 Use --threads equal to your CPU cores for maximum speed.
 
-Adjust --batch for larger buffer sizes to reduce I/O.
+Use --batch to increase buffer size if generating huge outputs.
 
-Resume generation for very large outputs to avoid starting over.
+Use --resume to safely continue after interruptions.
 
-Use compressed output (--compress gzip) to save disk space for huge datasets.
+Use --compress gzip to save disk space for large files.
+
+Use --dry-run for quick throughput tests without writing to disk.
 
 License
 
