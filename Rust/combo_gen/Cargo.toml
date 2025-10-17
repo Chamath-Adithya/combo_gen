@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-num_cpus = "1.17"
-parking_lot = "0.12"
+num_cpus = "1.16.0"
 indicatif = "0.17.8"
 

@@ -1,12 +1,12 @@
 // combo_gen.rs
-// Build: rustc -O combo_gen.rs -o combo_gen
-// Or with cargo: cargo build --release
+// Build: rustc -C opt-level=3 combo_gen.rs -o combo_gen
+// Or with Cargo: cargo build --release
 //
-// Usage examples:
-//  ./combo_gen 8                # length=8, threads=auto, output=/dev/null (fast benchmark)
-//  ./combo_gen 5 --limit 1000   # generate first 1000 combos of length 5 and exit
-//  ./combo_gen 4 --threads 8 --output combos.txt --limit 100000
-//  ./combo_gen 3 --limit 10 --output -   # print to terminal
+// Examples:
+//  ./combo_gen 8 --limit 1000
+//  ./combo_gen 4 --threads 8 --output combos.txt
+//  ./combo_gen 3 --limit 10 --output -
+//  ./combo_gen 8 --limit 500000 --output /dev/null
 
 use std::env;
 use std::fs::File;
@@ -15,13 +15,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
+use indicatif::{ProgressBar, ProgressStyle};
 
 fn default_charset() -> Vec<u8> {
-    // 94 printable ASCII characters from '!' (33) to '~' (126)
-    (33u8..=126u8).collect()
+    (33u8..=126u8).collect() // 94 printable ASCII
 }
 
-// compute base^exp as u128 then check fits u64
 fn pow_u64(base: u64, exp: usize) -> Option<u64> {
     let mut r: u128 = 1;
     for _ in 0..exp {
@@ -33,7 +32,6 @@ fn pow_u64(base: u64, exp: usize) -> Option<u64> {
     Some(r as u64)
 }
 
-// Convert index → digit array (for odometer initialization)
 fn index_to_digits(mut index: u64, base: u64, len: usize) -> Vec<u32> {
     let mut digits = vec![0u32; len];
     for pos in (0..len).rev() {
@@ -43,7 +41,6 @@ fn index_to_digits(mut index: u64, base: u64, len: usize) -> Vec<u32> {
     digits
 }
 
-// Increment odometer digits in base `base`
 #[inline]
 fn odometer_increment(digits: &mut [u32], base: u32) -> bool {
     let mut pos = digits.len();
@@ -66,9 +63,6 @@ fn main() {
         eprintln!(
             "Usage: {} <length> [--threads N] [--limit N] [--output path] [--charset custom]",
             args[0]
-        );
-        eprintln!(
-            "Default: threads = logical cores, output = /dev/null, charset = 94 printable ASCII"
         );
         return;
     }
@@ -101,8 +95,8 @@ fn main() {
                 i += 1;
                 charset = args[i].as_bytes().to_vec();
             }
-            other => {
-                eprintln!("Unknown arg: {}", other);
+            _ => {
+                eprintln!("Unknown argument: {}", args[i]);
                 std::process::exit(1);
             }
         }
@@ -110,10 +104,6 @@ fn main() {
     }
 
     let base = charset.len() as u64;
-    if base < 2 {
-        panic!("charset must contain at least 2 characters");
-    }
-
     let total = match pow_u64(base, length) {
         Some(v) => v,
         None => {
@@ -126,34 +116,41 @@ fn main() {
     println!("Code length: {}", length);
     println!("Total combinations: {}", total);
     println!("Threads: {}", threads);
-    if let Some(l) = limit {
-        println!("Limit: {}", l);
-    } else {
-        println!("Limit: (none)");
-    }
+
+    let effective_total = limit.map_or(total, |l| l.min(total));
+    println!(
+        "Limit: {}",
+        limit.map_or_else(|| "(none)".to_string(), |v| v.to_string())
+    );
     println!("Output path: {}", output_path);
 
-    // effective total
-    let effective_total = limit.map_or(total, |l| l.min(total));
     if effective_total == 0 {
         println!("Nothing to do (limit=0).");
         return;
     }
 
-    // open writer (support "-" = stdout)
+    // open writer
     let writer: Arc<Mutex<Box<dyn Write + Send>>> = if output_path == "-" {
         Arc::new(Mutex::new(Box::new(io::stdout()) as Box<dyn Write + Send>))
     } else {
-        match File::create(&output_path) {
-            Ok(f) => Arc::new(Mutex::new(Box::new(BufWriter::with_capacity(1 << 20, f)))),
-            Err(e) => {
-                eprintln!("Failed to open '{}': {}", output_path, e);
-                std::process::exit(1);
-            }
-        }
+        Arc::new(Mutex::new(Box::new(BufWriter::with_capacity(
+            1 << 20,
+            File::create(&output_path).expect("Failed to open output file"),
+        ))))
     };
 
-    // partition
+    // setup progress bar
+    let pb = ProgressBar::new(effective_total);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% ({pos}/{len}) ETA:{eta}")
+            .unwrap()
+            .progress_chars("█░"),
+    );
+
+    let produced = Arc::new(AtomicU64::new(0));
+    let start_time = Instant::now();
+
     let mut per_thread = effective_total / threads as u64;
     let mut remainder = effective_total % threads as u64;
     if per_thread == 0 {
@@ -163,14 +160,12 @@ fn main() {
         println!("Adjusted threads to {}", threads);
     }
 
-    let produced = Arc::new(AtomicU64::new(0));
-    let start_time = Instant::now();
-    println!("Starting generation... (this may be I/O bound)");
+    println!("Starting generation...\n");
 
     let mut handles = Vec::with_capacity(threads);
     let mut start_index = 0u64;
 
-    for _t in 0..threads {
+    for _ in 0..threads {
         let count = per_thread + if remainder > 0 { remainder -= 1; 1 } else { 0 };
         if count == 0 {
             break;
@@ -181,12 +176,13 @@ fn main() {
         let charset_local = charset.clone();
         let writer_clone = Arc::clone(&writer);
         let produced_clone = Arc::clone(&produced);
+        let pb_clone = pb.clone();
 
         handles.push(thread::spawn(move || {
             let mut digits = index_to_digits(start, base, length);
             let base_u32 = base as u32;
-            let mut buf = Vec::with_capacity(1 << 16); // 64KB
-            let mut local_count = 0;
+            let mut buf = Vec::with_capacity(1 << 16);
+            let mut local_count = 0u64;
 
             for _ in 0..count {
                 for &d in &digits {
@@ -202,6 +198,10 @@ fn main() {
                 }
 
                 odometer_increment(&mut digits, base_u32);
+
+                if local_count % 10_000 == 0 {
+                    pb_clone.inc(10_000);
+                }
             }
 
             if !buf.is_empty() {
@@ -222,17 +222,12 @@ fn main() {
         let _ = w.flush();
     }
 
-    let elapsed = start_time.elapsed();
-    let sec = elapsed.as_secs_f64();
+    pb.finish_with_message("✅ Done!");
+    let elapsed = start_time.elapsed().as_secs_f64();
     let total_done = produced.load(Ordering::Relaxed);
 
-    println!("Done. Produced: {}", total_done);
-    println!("Elapsed: {:.3} s", sec);
-    if sec > 0.0 {
-        println!(
-            "Throughput: {:.3} combos/sec",
-            total_done as f64 / sec
-        );
-    }
+    println!("\nDone. Produced: {}", total_done);
+    println!("Elapsed: {:.3} s", elapsed);
+    println!("Throughput: {:.2} combos/sec", total_done as f64 / elapsed);
 }
 
