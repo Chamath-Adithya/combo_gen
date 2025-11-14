@@ -1,0 +1,43 @@
+cff-version: "1.2.0"
+message: "If you use this software in a publication, please cite it using the metadata below."
+title: "combo_gen: Combo Password Generating & Predicting Tool (Desktop + ESP32 + Arduino)"
+version: "v1.0.0"
+doi: "https://doi.org/10.5281/zenodo.17608977"
+url: "https://github.com/Chamath-Adithya/combo_gen"
+date-released: "2025-11-14"
+
+authors:
+  - given-names: "Senanayaka Appuhamilage Chamath Adithya Senanayaka"
+    family-names: "S.A.C.A.Senanayaka"
+    email: "achamath1@gmail.com"
+    affiliation: "Independent Researcher"
+
+abstract: >
+  combo_gen is a suite of high-performance combination generators across desktop and embedded platforms.
+  It supports Rust implementations (optimized, resumable), microcontroller firmware for ESP32,
+  and Arduino boards, enabling efficient generation of all possible combinations for testing,
+  benchmarking, password simulation, and research.
+
+keywords:
+  - "password wordlist"
+  - "combination generator"
+  - "Rust"
+  - "ESP32"
+  - "Arduino"
+  - "GPU acceleration"
+  - "CPU+GPU hybrid"
+  - "cybersecurity"
+  - "pentesting"
+
+license: "MIT"
+
+bibtex:
+  entry:
+    - "@software{senanayaka2025combo_gen,
+         title = {combo_gen: Combo Password Generating & Predicting Tool (Desktop + ESP32 + Arduino)},
+         author = {S.A.C.A.Senanayaka},
+         year = {2025},
+         version = {v1.0.0},
+         doi = {10.5281/zenodo.17608690},
+         url = {https://github.com/Chamath-Adithya/combo_gen}
+       }"
