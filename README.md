@@ -1,4 +1,6 @@
 # combo_gen
+[![DOI](https://zenodo.org/badge/1077784396.svg)](https://doi.org/10.5281/zenodo.17608977)
+
 
 A suite of high-performance combination generators for various platforms, designed for generating all possible combinations of a given character set and length. Ideal for testing, benchmarking, password generation simulation, and research purposes.
 
