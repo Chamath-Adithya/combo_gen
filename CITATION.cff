@@ -38,6 +38,6 @@ bibtex:
          author = {S.A.C.A.Senanayaka},
          year = {2025},
          version = {v1.0.0},
-         doi = {10.5281/zenodo.17608690},
+         doi = {10.5281/zenodo.17608977},
          url = {https://github.com/Chamath-Adithya/combo_gen}
        }"
